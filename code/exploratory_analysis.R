@@ -8,7 +8,7 @@ library(car)
 
 # set working directory
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
-# setwd("../")
+setwd("../")
 
 # read in raw data
 data_raw <- read_csv("data/gateway-cleaned.csv")
@@ -57,13 +57,13 @@ food_web_stats <- do.call(rbind, lapply(food_webs, function(i){
   out_degree_dist <- list(curr_out_degrees)
   
   stats <- tibble(foodweb_name = curr_name,
-             n = vcount(curr_web),
-             mean_degree = mean(curr_all_degrees),
-             diameter = diameter(curr_web),
-             in_degree_distribution = in_degree_dist,
-             out_degree_distribution = out_degree_dist,
-             mean_distance = mean_distance(curr_web),
-             connectance = edge_density(curr_web))
+                  n = vcount(curr_web),
+                  mean_degree = mean(curr_all_degrees),
+                  diameter = diameter(curr_web),
+                  in_degree_distribution = in_degree_dist,
+                  out_degree_distribution = out_degree_dist,
+                  mean_distance = mean_distance(curr_web),
+                  connectance = edge_density(curr_web))
 }))
 
 # standardize metadata columns
@@ -115,126 +115,7 @@ stats_and_metadata <- food_web_stats %>%
          pred_analysis = ifelse(pred_analysis == "yes", 1, 0),
          molecular = ifelse(molecular == "yes", 1, 0),
          presence_sampling = ifelse(presence_sampling == "yes", 1, 0),
-         fatty_acid = ifelse(fatty_acid == "yes", 1, 0))
+         fatty_acid = ifelse(fatty_acid == "yes", 1, 0)) %>%
+  select(-c(in_degree_distribution, out_degree_distribution))
 
-# make some models
-linear_model <- lm(connectance ~ gut_content + 
-                     expert + 
-                     literature + 
-                     field_obs + 
-                     feeding_trial + 
-                     natural_history + 
-                     pred_analysis + 
-                     molecular + 
-                     presence_sampling +
-                     paper_1_year, 
-                   data = stats_and_metadata,
-                   na.action = na.fail)
-car::vif(linear_model)
-summary(linear_model)
-MuMIn::dredge(linear_model)
-
-reduced_model_1 <- lm(n ~ feeding_trial +
-                      field_obs +
-                      gut_content +
-                      literature +
-                      molecular +
-                      paper_1_year +
-                      pred_analysis,
-                    data = stats_and_metadata)
-
-reduced_model_2 <- lm(connectance ~ literature +
-                        molecular +
-                        natural_history +
-                        paper_1_year,
-                      data = stats_and_metadata)
-
-car::vif(reduced_model_2)
-
-summary(reduced_model_1)
-summary(reduced_model_2)
-
-
-mixed_model <- lmer(connectance ~ feeding_trial +
-                      field_obs + 
-                      molecular +
-                      natural_history + 
-                      paper_1_year +
-                      (1|link.citation), 
-                   data = stats_and_metadata)
-mixed_model_n <- lmer(n ~ feeding_trial +
-                        field_obs +
-                        gut_content +
-                        literature +
-                        molecular +
-                        paper_1_year +
-                        pred_analysis +
-                        (1|link.citation), 
-                      data = stats_and_metadata)
-
-summary(mixed_model)
-report(mixed_model)
-report(mixed_model_n)
-
-AIC(linear_model)
-AIC(mixed_model)
-AIC(reduced_model_2)
-
-# make some visualizations
-ggplot(data = stats_and_metadata, aes(x = connectance)) +
-  geom_histogram()
-
-ggplot(data = stats_and_metadata, aes(x = n)) +
-  geom_histogram()
-
-ggplot(data = stats_and_metadata, aes(x = mean_degree)) +
-  geom_histogram()
-
-ggplot(data = stats_and_metadata, aes(x = (diameter/n))) +
-  geom_histogram()
-
-ggplot(data = stats_and_metadata, aes(x = mean_distance)) +
-  geom_histogram()
-
-
-# build null models
-
-
-
-# # null models
-# stats_and_metadata$n_null <- NA
-# stats_and_metadata$diameter_null <- NA
-# stats_and_metadata$mean_distance_null <- NA
-# 
-# for (i in 1:nrow(stats_and_metadata)){
-#   # i = 6
-#   print(i)
-#   in_degree <- unname(stats_and_metadata$in_degree_distribution[[i]])
-#   out_degree <- unname(stats_and_metadata$out_degree_distribution[[i]])
-#   graph <- sample_degseq(out.deg=out_degree, in.deg=in_degree, method="simple.no.multiple")
-#   n_list <- list()
-#   diameter_list <- list()
-#   dist_list <- list()
-#   # loop through and generate 10 random graphs each
-#   for (i in 1:10){
-#     g <- sample_degseq(out.deg=out_degree, in.deg=in_degree, method="simple.no.multiple")
-#     n_list[[length(n_list)+1]] = vcount(g)
-#     diameter_list[[length(diameter_list)+1]] = diameter(g)
-#     dist_list[[length(dist_list)+1]] = mean_distance(g)
-#   }
-#   avg_n <- mean(unlist(n_list))
-#   avg_diam <- mean(unlist(diameter_list))
-#   avg_dist <- mean(unlist(dist_list))
-#   
-#   # stats_and_metadata$null_model[i] <- graph
-#   stats_and_metadata$n_null[i] <- avg_n
-#   stats_and_metadata$diameter_null[i] <- avg_diam
-#   stats_and_metadata$mean_distance_null[i] <- avg_dist
-#   
-# }
-# 
-# # testing
-# in_degree = unname(stats_and_metadata$in_degree_distribution[[1]])
-# out_degree = unname(stats_and_metadata$out_degree_distribution[[1]])
-# 
-# test_graph <- sample_degseq(out.deg=out_degree, in.deg=in_degree, method="simple.no.multiple")
+write.csv(stats_and_metadata, "data/stats_and_metadata.csv")

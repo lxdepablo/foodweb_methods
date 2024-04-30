@@ -8,7 +8,7 @@ library(car)
 
 # set working directory
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
-setwd("../")
+# setwd("../")
 
 # read in raw data
 data_raw <- read_csv("data/gateway-cleaned.csv")
@@ -196,3 +196,41 @@ ggplot(data = stats_and_metadata, aes(x = (diameter/n))) +
 ggplot(data = stats_and_metadata, aes(x = mean_distance)) +
   geom_histogram()
 
+
+# null models
+stats_and_metadata$n_null <- NA
+stats_and_metadata$diameter_null <- NA
+stats_and_metadata$mean_distance_null <- NA
+
+for (i in 1:nrow(stats_and_metadata)){
+  # i = 6
+  print(i)
+  in_degree <- unname(stats_and_metadata$in_degree_distribution[[i]])
+  out_degree <- unname(stats_and_metadata$out_degree_distribution[[i]])
+  graph <- sample_degseq(out.deg=out_degree, in.deg=in_degree, method="simple.no.multiple")
+  n_list <- list()
+  diameter_list <- list()
+  dist_list <- list()
+  # loop through and generate 10 random graphs each
+  for (i in 1:10){
+    g <- sample_degseq(out.deg=out_degree, in.deg=in_degree, method="simple.no.multiple")
+    n_list[[length(n_list)+1]] = vcount(g)
+    diameter_list[[length(diameter_list)+1]] = diameter(g)
+    dist_list[[length(dist_list)+1]] = mean_distance(g)
+  }
+  avg_n <- mean(unlist(n_list))
+  avg_diam <- mean(unlist(diameter_list))
+  avg_dist <- mean(unlist(dist_list))
+  
+  # stats_and_metadata$null_model[i] <- graph
+  stats_and_metadata$n_null[i] <- avg_n
+  stats_and_metadata$diameter_null[i] <- avg_diam
+  stats_and_metadata$mean_distance_null[i] <- avg_dist
+  
+}
+
+# testing
+in_degree = unname(stats_and_metadata$in_degree_distribution[[1]])
+out_degree = unname(stats_and_metadata$out_degree_distribution[[1]])
+
+test_graph <- sample_degseq(out.deg=out_degree, in.deg=in_degree, method="simple.no.multiple")
